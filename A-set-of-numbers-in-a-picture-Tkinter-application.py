@@ -5,12 +5,13 @@ from PIL import Image, ImageTk
 
 # Глобальные переменные
 image_data = None
-canvas_img_refs = []   # ссылки на PhotoImage чтобы не удалялись
+canvas_img_refs = []  # ссылки на PhotoImage чтобы не удалялись
 current_width = None
 current_height = None
 
 def setup_clipboard_bindings(widget):
     """Настроить привязки для копирования/вставки/вырезания и SelectAll."""
+
     def gen(event_name):
         return lambda e: (widget.event_generate(event_name), "break")
 
@@ -49,7 +50,9 @@ def setup_clipboard_bindings(widget):
 def load_image():
     """Открывает файл изображения, показывает его и заполняет табло RGB."""
     global image_data, current_width, current_height
-    path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif"), ("All files","*.*")])
+    path = filedialog.askopenfilename(
+        filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif"), ("All files", "*.*")]
+    )
     if not path:
         return
     try:
@@ -81,7 +84,10 @@ def fill_text_from_image(arr):
     max_cells_warn = 500000  # если больше строк — показываем предупреждение
     total = h * w
     if total > max_cells_warn:
-        if not messagebox.askyesno("Большое изображение", f"Изображение содержит {total} пикселей. Это создаст {total} строк в табло и может сильно замедлить интерфейс. Продолжить?"):
+        if not messagebox.askyesno(
+            "Большое изображение",
+            f"Изображение содержит {total} пикселей. Это создаст {total} строк в табло и может сильно замедлить интерфейс. Продолжить?",
+        ):
             return
 
     # Формируем строки в памяти и вставляем одной операцией (быстрее)
@@ -145,11 +151,16 @@ def open_image_from_text():
         if sq * sq == n:
             w = sq
         else:
-            messagebox.showinfo("Уточнение", "Ширина не указана и длина не является квадратом. Пожалуйста, укажите ширину.")
+            messagebox.showinfo(
+                "Уточнение",
+                "Ширина не указана и длина не является квадратом. Пожалуйста, укажите ширину.",
+            )
             return
 
     if len(pixels) % w != 0:
-        messagebox.showerror("Ошибка", f"Количество пикселей ({len(pixels)}) не делится на указанную ширину ({w}).")
+        messagebox.showerror(
+            "Ошибка", f"Количество пикселей ({len(pixels)}) не делится на указанную ширину ({w})."
+        )
         return
 
     arr = np.array(pixels, dtype=np.uint8)
@@ -169,6 +180,28 @@ def clear_text():
     text_widget.config(state="normal")
     text_widget.delete("1.0", tk.END)
 
+def save_text_to_file():
+    """Сохраняет содержимое текстового поля в выбранный файл (.txt)."""
+    txt = text_widget.get("1.0", tk.END).strip()
+    if not txt:
+        messagebox.showwarning("Пусто", "Нечего сохранять — текстовое поле пусто.")
+        return
+
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".txt",
+        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        title="Сохранить RGB-данные как...",
+    )
+    if not file_path:
+        return  # пользователь отменил сохранение
+
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(txt)
+        messagebox.showinfo("Сохранено", f"Файл сохранён:\n{file_path}")
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Не удалось сохранить файл:\n{e}")
+
 # --- GUI ---
 root = tk.Tk()
 root.title("RGB редактор Tkinter")
@@ -179,19 +212,23 @@ top_frame.pack(fill=tk.X, padx=8, pady=6)
 
 # Кнопка загрузки изображения (показывает и заполняет табло)
 load_btn = tk.Button(top_frame, text="Загрузить изображение", command=load_image)
-load_btn.pack(side=tk.LEFT, padx=(0,6))
+load_btn.pack(side=tk.LEFT, padx=(0, 6))
 
 width_label = tk.Label(top_frame, text="Ширина (px):")
 width_label.pack(side=tk.LEFT)
 width_var = tk.StringVar()
 width_entry = tk.Entry(top_frame, textvariable=width_var, width=8)
-width_entry.pack(side=tk.LEFT, padx=(4,12))
+width_entry.pack(side=tk.LEFT, padx=(4, 12))
 
 open_from_text_btn = tk.Button(top_frame, text="Открыть изображение из RGB", command=open_image_from_text)
-open_from_text_btn.pack(side=tk.LEFT, padx=(0,6))
+open_from_text_btn.pack(side=tk.LEFT, padx=(0, 6))
 
 clear_btn = tk.Button(top_frame, text="Очистить табло", command=clear_text)
-clear_btn.pack(side=tk.LEFT)
+clear_btn.pack(side=tk.LEFT, padx=(0, 6))
+
+# --- Новая кнопка сохранения ---
+save_btn = tk.Button(top_frame, text="💾 Сохранить RGB как .txt", command=save_text_to_file)
+save_btn.pack(side=tk.LEFT)
 
 # Текстовая область для RGB
 text_frame = tk.Frame(root)
@@ -209,7 +246,11 @@ text_widget.pack(fill=tk.BOTH, expand=True)
 setup_clipboard_bindings(text_widget)
 
 # Подсказка внизу
-hint = tk.Label(root, text="Формат: по одному триплету на строку: R G B   (или R,G,B). Если поле 'Ширина' пустое, пытаемся подобрать квадрат.", anchor="w")
-hint.pack(fill=tk.X, padx=8, pady=(0,8))
+hint = tk.Label(
+    root,
+    text="Формат: по одному триплету на строку: R G B (или R,G,B). Если поле 'Ширина' пустое, пытаемся подобрать квадрат.",
+    anchor="w",
+)
+hint.pack(fill=tk.X, padx=8, pady=(0, 8))
 
 root.mainloop()
