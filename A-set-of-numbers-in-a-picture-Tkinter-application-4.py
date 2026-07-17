@@ -530,7 +530,7 @@ def split_image_to_rgb_lents():
 # --- GUI ---
 root = tk.Tk()
 root.title("RGB редактор Tkinter")
-root.geometry("900x750")
+root.geometry("1200x750")
 
 top_frame = tk.Frame(root)
 top_frame.pack(fill=tk.X, padx=8, pady=6)
